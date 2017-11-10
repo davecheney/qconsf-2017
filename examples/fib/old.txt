@@ -1,0 +1,24 @@
+goos: darwin
+goarch: amd64
+BenchmarkFib-4   	   30000	     55060 ns/op
+BenchmarkFib-4   	   30000	     56160 ns/op
+BenchmarkFib-4   	   30000	     58488 ns/op
+BenchmarkFib-4   	   20000	     58674 ns/op
+BenchmarkFib-4   	   30000	     56166 ns/op
+BenchmarkFib-4   	   30000	     57474 ns/op
+BenchmarkFib-4   	   30000	     57310 ns/op
+BenchmarkFib-4   	   30000	     55329 ns/op
+BenchmarkFib-4   	   30000	     57196 ns/op
+BenchmarkFib-4   	   30000	     59623 ns/op
+BenchmarkFib-4   	   30000	     57431 ns/op
+BenchmarkFib-4   	   30000	     62942 ns/op
+BenchmarkFib-4   	   20000	     65970 ns/op
+BenchmarkFib-4   	   30000	     62345 ns/op
+BenchmarkFib-4   	   20000	     61653 ns/op
+BenchmarkFib-4   	   20000	     63909 ns/op
+BenchmarkFib-4   	   20000	     63143 ns/op
+BenchmarkFib-4   	   20000	     58919 ns/op
+BenchmarkFib-4   	   30000	     59666 ns/op
+BenchmarkFib-4   	   20000	     60627 ns/op
+PASS
+ok  	_/Users/dfc/devel/qconsf-2017/fib	43.090s
