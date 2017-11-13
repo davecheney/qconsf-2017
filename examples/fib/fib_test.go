@@ -1,6 +1,5 @@
 package fib
 
-// STARTBENCH OMIT
 import "testing"
 
 // STARTFIB OMIT
@@ -18,6 +17,7 @@ func Fib(n int) int {
 
 // ENDFIB OMIT
 
+// STARTBENCH OMIT
 func BenchmarkFib(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		Fib(20) // run the Fib function b.N times

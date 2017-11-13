@@ -11,14 +11,18 @@ func Fib(n int) int {
 	return a
 }
 
+var Result int
+
 func BenchmarkFibWrong(b *testing.B) {
-	Fib(b.N)
+	Result = Fib(b.N)
 }
 
 func BenchmarkFibWrong2(b *testing.B) {
+	var r int
 	for n := 0; n < b.N; n++ {
-		Fib(n)
+		r = Fib(n)
 	}
+	Result = r
 }
 
 // END OMIT
