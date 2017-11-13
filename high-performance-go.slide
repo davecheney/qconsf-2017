@@ -23,7 +23,7 @@ We're going to focus on three areas in this presentation:
 
 - Benchmarking
 - Performance measurement and profiling
-- Memory management and GC tuning
+- Memory management and GC
 
 Although not strictly in this order.
 
@@ -80,8 +80,7 @@ Each benchmark is run `b.N` times until it takes longer than 1 second.
 
 _Beware:_ below the μs mark you will start to see the relativistic effects of instruction reordering and code alignment. 
 
-- Run benchmarks longer to get more accuracy; `go`test`-benchtime=10s`
-- Run benchmarks multiple times; `go`test`-count=10`
+Run benchmarks longer to get more accuracy; `go`test`-benchtime=10s`
 
 _Tip:_ If this is required, codify it in a `Makefile` so everyone is comparing apples to apples.
 
@@ -91,7 +90,7 @@ For repeatable results, you should run benchmarks multiple times.
 
 You can do this manually, or use the `-count` flag.
 
- % go test -bench=. -count=5
+ % go test -bench=. -count=10 | tee old.txt
  goos: darwin
  goarch: amd64
  BenchmarkFib-4             30000             51081 ns/op
@@ -106,11 +105,11 @@ You can do this manually, or use the `-count` flag.
 
 Determining the performance delta between two sets of benchmarks can be tedious and error prone.
 
- % go test -bench=. -count=20 | tee old.txt
+ % go test -bench=. -count=10 | tee old.txt
 
 DEMO: Improve `Fib`
 
- % go test -bench=. -count=20 | tee new.txt
+ % go test -bench=. -count=10 | tee new.txt
 
 Tools like [[https://godoc.org/rsc.io/benchstat][rsc.io/benchstat]] are useful for comparing results.
 
@@ -224,14 +223,11 @@ Memory profiling, like CPU profiling is sample based, by default memory profilin
 
 Because of memory profiling is sample based and because it tracks _allocations_ not _use_, using memory profiling to determine your application's overall memory usage is difficult.
 
-_Personal_Opinion:_ I do not find memory profiling useful for finding memory leaks. There are better ways to determine how much memory your application is using. We will discuss these later in the presentation.
-
 * Other supported profiles
 
 Block profiling is similar to a CPU profile, but it records the amount of time a goroutine spent waiting for a shared resource.
-This can be useful for determining _concurrency_ bottlenecks in your application.
 
-Block profiling can show you when a large number of goroutines _could_ make progress, but were _blocked_. Blocking includes:
+Block profiling can show you when a large number of goroutines _could_ make progress, but were _blocked_. This can be useful for determining _concurrency_ bottlenecks in your application. Blocking includes:
 
 - Sending or receiving on a unbuffered channel.
 - Sending to a full channel, receiving from an empty one.
@@ -239,7 +235,7 @@ Block profiling can show you when a large number of goroutines _could_ make prog
 
 Mutex profiling records the stack traces of the _holder_ of a contended mutex.
 
-Thread creation profiling records the stack traces tha led to the creation of new OS threads.
+Thread creation profiling records the stack traces that led to the creation of new OS threads.
 
 These are very specialised tools and should not be used until you believe you have eliminated all your CPU and memory usage bottlenecks.
 In the interests of time, I'm only going to talk about CPU profiling.
@@ -273,13 +269,25 @@ A few years ago I wrote a small package, [[https://github.com/pkg/profile][githu
 
 _Tip:_ `pkg/profile` will prevent you from enabling more than one profile at once.
 
+* Profiling godoc
+
+DEMO: add CPU profiling to `godoc`.
+
+1. edit `$GOPATH/src/golang.org/x/tools/cmd/godoc/main.go`, add 
+
+    defer profile.Start(profile.CPUProfile).Stop()
+
+2. `go`install`-v`golang.org/x/tools/cmd/godoc`
+3. `godoc`-http=:8000`
+4. `go`tool`pprof`$PROFILE` 
+
 * Using pprof
 
 Now that I've talked about what pprof can measure, I will talk about how to use pprof to analyse a profile.
 
 Starting with Go 1.9, `pprof` only requires one argument.
 
-    go tool pprof /path/to/your/profile
+    go tool pprof $PROFILE
 
 _Tip:_ If you're using Go 1.8, `pprof` takes two arguments and will produce the wrong result if you give it just one. Upgrade to Go 1.9.
 
@@ -338,24 +346,12 @@ The `testing` package has built in support for generating CPU, memory, and block
 - `-memprofile=$FILE`, writes a memory profile to `$FILE`, `-memprofilerate=N` adjusts the profile rate to `1/N`.
 - `-blockprofile=$FILE`, writes a block profile to `$FILE`.
 
-Using any of these flags also preserves the binary.
+_Example_: Running benchmarks of the `bytes` package.
 
     % go test -run=XXX -bench=. -cpuprofile=c.p bytes
     % go tool pprof c.p
 
 _Note:_ use `-run=XXX` to disable tests, you only want to profile benchmarks. You can also use `-run=^$` to accomplish the same thing.
-
-* Profiling godoc
-
-DEMO: add CPU profiling to `godoc`.
-
-1. edit `$GOPATH/src/golang.org/x/tools/cmd/godoc/main.go`, add 
-
-    defer profile.Start(profile.CPUProfile).Stop()
-
-2. `go`install`-v`golang.org/x/tools/cmd/godoc`
-3. `godoc`-http=:8080`
-4. `go`tool`pprof`$PROFILE` 
 
 * Go Execution tracer
 
@@ -378,7 +374,6 @@ Before we go on there are some things we should talk about the usage of the trac
 - The tool uses the javascript debugging support built into Chrome. Trace profiles can only be viewed in Chrome, they won't work in Firefox, Safari, IE/Edge. Sorry.
 - Because this is a Google product, it supports keyboard shortcuts; use `WASD` to navigate, use `?` to get a list.
 - Viewing traces can take a *lot* of memory. Seriously, 4Gb won't cut it, 8Gb is probably the minimum, more is definitely better.
-- If you've installed Go from an OS distribution like Fedora, the support files for the trace viewer may not be part of the main `golang` deb/rpm, they might be in some `-extra` package.
 
 * go tool trace (cont.)
 
@@ -389,7 +384,7 @@ DEMO: add an execution trace to `godoc`.
     defer profile.Start(profile.TraceProfile).Stop()
 
 2. `go`install`-v`golang.org/x/tools/cmd/godoc`
-3. `godoc`-http=:8080`
+3. `godoc`-http=:8000`
 4. `go`tool`trace`$PROFILE` 
 
 * Tracing running applications
@@ -408,7 +403,7 @@ It will register tracing and profiling routes with `http.DefaultServeMux`.
 
 * Mandelbrot microservice
 
-It's 2017, generating Mandelbrots is pointless unless you can offer them on the internet as a web sevice.
+It's 2017, generating Mandelbrots is pointless unless you can offer them on the internet as a microsevice.
 
 Thus, I present to you, _Mandelweb_
 
@@ -451,9 +446,9 @@ And with that running, in another window collect the trace
 - Dave Cheney, [[https://dave.cheney.net/training#high-performance-go][High performance Go workshop]]
 - Francesc Campoy, [[https://www.youtube.com/watch?v=ySy3sR1LFCQ][just for func #22: using the Go execution tracer]]
 
-* Memory management and GC tuning
+* Memory management and GC
 
-* Memory management and GC tuning
+* Memory management and GC
 
 Go is a garbage collected language. This is a design principle, it will not change.
 
@@ -461,7 +456,7 @@ As a garbage collected language, the performance of Go programs is often determi
 
 Next to your choice of algorithms, memory consumption is the most important factor that determines the performance and scalability of your application.
 
-This section discusses the operation of the garbage collector, how to measure the memory usage of your program and strategies for lowering memory usage if garbage collector performance is a bottleneck.
+This section discusses the operation of the garbage collector and strategies for lowering memory usage if garbage collector performance is a bottleneck.
 
 * Go GC is focused on reducing latency
 
@@ -484,8 +479,7 @@ The design of the Go GC has changed over the years
 - Go 1.5, new GC design, focusing on _latency_ over _throughput_.
 - Go 1.6, GC improvements, handling larger heaps with lower latency.
 - Go 1.7, small GC improvements, mainly refactoring.
-- Go 1.8, further work to reduce STW times, now down to the 100 microsecond range.
-- Go 1.9,
+- Go 1.8–1.9, further work to reduce STW times, now down to the 100 microsecond range.
 - Go 1.10, ROC collector is an experiment to extend the idea of escape analysis per goroutine.
 
 * Garbage collector monitoring
@@ -494,7 +488,7 @@ A simple way to obtain a general idea of how hard the garbage collector is worki
 
 These stats are always collected, but normally suppressed, you can enable their display by setting the `GODEBUG` environment variable.
 
- % env GODEBUG=gctrace=1 godoc -http=:8080
+ % env GODEBUG=gctrace=1 godoc -http=:8000
  gc 1 @0.017s 8%: 0.021+3.2+0.10+0.15+0.86 ms clock, 0.043+3.2+0+2.2/0.002/0.009+1.7 ms cpu, 5->6->1 MB, 4 MB goal, 4 P
  gc 2 @0.026s 12%: 0.11+4.9+0.12+1.6+0.54 ms clock, 0.23+4.9+0+3.0/0.50/0+1.0 ms cpu, 4->6->3 MB, 6 MB goal, 4 P
  gc 3 @0.035s 14%: 0.031+3.3+0.76+0.17+0.28 ms clock, 0.093+3.3+0+2.7/0.012/0+0.84 ms cpu, 4->5->3 MB, 3 MB goal, 4 P
@@ -634,42 +628,6 @@ Depending on the request you may end up reading megabytes (or more!) of data int
 Instead use `io.Reader` and `io.Writer` to construct processing pipelines to cap the amount of memory in use per request.
 
 For efficiency, consider implementing `io.ReaderFrom` / `io.WriterTo` if you use a lot of `io.Copy`. These interface are more efficient and avoid copying memory into a temporary buffer.
-
-* Timeouts, timeouts, timeouts
-
-Never start an IO operating without knowing the maximum time it will take.
-
-You need to set a timeout on every network request you make with `SetDeadline`, `SetReadDeadline`, `SetWriteDeadline`.
-
-You need to limit the amount of blocking IO you issue. Use a pool of worker goroutines, or a buffered channel as a semaphore.
-
-.code examples/semaphore/semaphore.go /START OMIT/,/END OMIT/
-
-* Minimise cgo
-
-cgo allows Go programs to call into C libraries. 
-
-C code and Go code live in two different universes, cgo traverses the boundary between them.
-
-This transition is not free and depending on where it exists in your code, the cost could be substantial.
-
-cgo calls are similar to blocking IO, they consume a thread during operation.
-
-Do not call out to C code in the middle of a tight loop.
-
-* Actually, avoid cgo
-
-cgo has a high overhead.
-
-For best performance I recommend avoiding cgo in your applications.
-
-- If the C code takes a long time, cgo overhead is not as important.
-- If you're using cgo to call a very short C function, where the overhead is the most noticeable, rewrite that code in Go -- by definition it's short.
-- If you're using a large piece of expensive C code is called in a tight loop, why are you using Go?
-
-Is there anyone who's using cgo to call expensive C code frequently?
-
-.link http://dave.cheney.net/2016/01/18/cgo-is-not-go Further reading: cgo is not Go.
 
 * Always use the latest released version of Go
 
