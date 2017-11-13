@@ -18,7 +18,7 @@ func popcnt(x uint64) int {
 
 // START OMIT
 func BenchmarkPopcnt(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for n := 0; n < b.N; n++ {
 		// optimised away
 	}
 }
