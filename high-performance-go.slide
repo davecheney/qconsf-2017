@@ -25,8 +25,6 @@ We're going to focus on three areas in this presentation:
 - Performance measurement and profiling
 - Memory management and GC
 
-Although not strictly in this order.
-
 The goal is to give you, the audience, the tools you need to measure and improve the performance of your Go applications.
 
 * Benchmarking
@@ -74,7 +72,7 @@ Each benchmark is run `b.N` times until it takes longer than 1 second.
 `b.N` increases in the approximate sequence; 1, 2, 3, 5, 10, 20, 30, 50, 100, ...
 
  % go test -bench=. ./examples/fib
- BenchmarkFib-4             30000             46408 ns/op
+ BenchmarkFib20-4           30000             46408 ns/op
  PASS
  ok      _/Users/dfc/devel/high-performance-go-workshop/examples/fib     1.910s
 
@@ -93,13 +91,18 @@ You can do this manually, or use the `-count` flag.
  % go test -bench=. -count=10 | tee old.txt
  goos: darwin
  goarch: amd64
- BenchmarkFib-4             30000             51081 ns/op
- BenchmarkFib-4             30000             51633 ns/op
- BenchmarkFib-4             30000             53430 ns/op
- BenchmarkFib-4             30000             51762 ns/op
- BenchmarkFib-4             30000             51559 ns/op
+ BenchmarkFib20-4           30000             52201 ns/op
+ BenchmarkFib20-4           30000             53010 ns/op
+ BenchmarkFib20-4           30000             50739 ns/op
+ BenchmarkFib20-4           30000             51434 ns/op
+ BenchmarkFib20-4           30000             51697 ns/op
+ BenchmarkFib20-4           30000             52610 ns/op
+ BenchmarkFib20-4           30000             53618 ns/op
+ BenchmarkFib20-4           30000             51615 ns/op
+ BenchmarkFib20-4           30000             52105 ns/op
+ BenchmarkFib20-4           30000             52031 ns/op
  PASS
- ok      _/Users/dfc/devel/qconsf-2017/examples/fib      10.389s
+ ok      _/Users/dfc/devel/qconsf-2017/examples/fib      21.035s
 
 * Comparing benchmarks (cont.)
 
@@ -174,12 +177,6 @@ This is only going to get more common as the Go compiler improves.
 
 DEMO: show how to fix popcnt
 
-* Benchmark mistakes
-
-Here are two incorrect benchmarks, can you explain what is wrong with them?
-
-.code examples/wrong/wrong_test.go /START OMIT/,/END OMIT/
-
 * Performance measurement and profiling
 
 * Performance measurement and profiling
@@ -188,13 +185,13 @@ Here are two incorrect benchmarks, can you explain what is wrong with them?
 
 Microbenchmarks are useful for tuning the performance of a hot piece of code, but it's impractical (and unreliable) to write a `testing.B` benchmark for entire programs–you'd get more reliable results with `time(1)`.
 
-In this section we'll use profiling tools built into Go to investigate the operation of the program from the inside.
+In this section we'll explore the profiling tools built into Go to investigate the operation of the program from the inside.
 
 * pprof
 
 The first tool we're going to be talking about today is _pprof_.
 
-[[https://github.com/google/pprof][pprof]] descends from the [[https://github.com/gperftools/gperftools][Google Perf Tools]] suite of tools.
+[[https://github.com/google/pprof][pprof]] descends from the [[https://github.com/gperftools/gperftools][Google Perf Tools]] suite.
 
 `pprof` profiling is built into the Go runtime.
 
@@ -562,20 +559,6 @@ The [[https://golang.org/pkg/bytes/][`bytes`]] package contains many of the same
 
 Under the hood `strings` uses same assembly primitives as the `bytes` package.
 
-* Using []byte as a map key
-
-It is very common to use a `string` as a map key, but often you have a `[]byte`.
-
-The compiler implements a specific optimisation for this case
-
-     var m map[string]string
-     v, ok := m[string(bytes)]
-
-This will avoid the conversion of the byte slice to a string for the map lookup. This is very specific, it won't work if you do something like
-
-     key := string(bytes)
-     val, ok := m[key] 
-
 * Preallocate slices if the length is known
 
 Append is convenient, but wasteful.
@@ -629,26 +612,9 @@ Instead use `io.Reader` and `io.Writer` to construct processing pipelines to cap
 
 For efficiency, consider implementing `io.ReaderFrom` / `io.WriterTo` if you use a lot of `io.Copy`. These interface are more efficient and avoid copying memory into a temporary buffer.
 
-* Always use the latest released version of Go
-
-Old versions of Go will never get better. They will never get bug fixes or optimisations.
-
-- Go 1.4 should not be used.
-- Go 1.5 and 1.6 had a slower compiler, but it produces faster code, and has a faster GC.
-- Go 1.7 delivered roughly a 30% improvement in compilation speed over 1.6, a 2x improvement in linking speed (better than any previous version of Go).
-- Go 1.8 delivered a smaller improvement in compilation speed (at this point), but a significant improvement in code quality for non Intel architectures.
-- Go 1.9 continues to improve 
-
-Old version of Go receive no updates. Do not use them. Use the latest and you will get the best performance.
-
-.link http://dave.cheney.net/2016/04/02/go-1-7-toolchain-improvements Go 1.7 toolchain improvements
-.link http://dave.cheney.net/2016/09/18/go-1-8-performance-improvements-one-month-in Go 1.8 performance improvements
-
 * Conclusion
 
 * Conclusion
-
-Always write the simplest code you can, the compiler is optimised for _normal_ code.
 
 Start with the simplest possible code.
 
@@ -661,6 +627,8 @@ As your application grows, or your traffic pattern evolves, the performance hot 
 Don't leave complex code that is not performance critical, rewrite it with simpler operations if the bottleneck moves elsewhere.
 
 * Conclusion (cont.)
+
+Always write the simplest code you can, the compiler is optimised for _normal_ code.
 
 Shorter code is faster code; Go is not C++, do not expect the compiler to unravel complicated abstractions.
 
